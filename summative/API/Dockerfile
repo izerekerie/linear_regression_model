@@ -16,11 +16,16 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Copy app code
+# Copy the entire app code (including API and linear_regression folders)
 COPY . .
 
-# Expose port
-EXPOSE 10000
+# Set environment variables needed by the app (adjust MODEL_PATH if needed)
+ENV MODEL_PATH=/app/linear_regression/saved_models
+ENV HOST=0.0.0.0
+ENV PORT=8000
 
-# Run the FastAPI app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Expose the port your app will run on
+EXPOSE 8000
+
+# Run the FastAPI app, referencing the correct module path
+CMD ["uvicorn", "API.main:app", "--host", "0.0.0.0", "--port", "8000"]
