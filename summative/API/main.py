@@ -2,13 +2,29 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 import joblib
 import pandas as pd
 import numpy as np
 import os
+import dotenv as load_dotenv
+
+# Load .env variables
+try:
+    from dotenv import load_dotenv
+    print("✅ dotenv imported successfully")
+    print(f"load_dotenv type: {type(load_dotenv)}")
+    load_dotenv()
+    print("✅ load_dotenv called successfully")
+except Exception as e:
+    print(f"❌ Error: {e}")
 
 # Initialize FastAPI app
+load_dotenv()
 app = FastAPI(title="Crop Yield Prediction API")
+MODEL_PATH = os.getenv('MODEL_PATH')
+PORT = int(os.getenv('PORT', 8000))
+HOST = os.getenv('HOST', '0.0.0.0')
 
 # Add CORS middleware
 app.add_middleware(
@@ -19,16 +35,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request model
+# Request model with required and optional fields
 class PredictionRequest(BaseModel):
+    # Required fields
     planting_year: int
     planting_month: int
     area: float
     product: str
     crop_production_system: str
     country: str
-    season_name: str = "unknown"
-    qc_flag: int = 1
+    
+    # Optional fields with default values
+    season_name: Optional[str] = "unknown"
+    qc_flag: Optional[int] = 1
 
 # Global variables for model components
 model = None
@@ -42,7 +61,8 @@ def load_model():
     
     try:
         # Path to saved_models folder (one level up from API folder, then into linear_regression)
-        model_dir = '../linear_regression/saved_models'
+        model_dir = MODEL_PATH 
+        print(f"📁 Loading model from: {model_dir}")
         model = joblib.load(f'{model_dir}/best_crop_yield_model.pkl')
         scaler = joblib.load(f'{model_dir}/scaler.pkl')
         encoders = joblib.load(f'{model_dir}/label_encoders.pkl')
@@ -62,7 +82,12 @@ async def startup():
 @app.get("/")
 async def root():
     """Root endpoint"""
-    return {"message": "Crop Yield Prediction API", "status": "running"}
+    return {
+        "message": "Crop Yield Prediction API", 
+        "status": "running",
+        "required_fields": ["country", "product", "area", "planting_month", "planting_year", "crop_production_system"],
+        "optional_fields": ["season_name", "qc_flag"]
+    }
 
 @app.get("/health")
 async def health():
@@ -77,18 +102,22 @@ async def predict(request: PredictionRequest):
         raise HTTPException(status_code=500, detail="Model not loaded")
     
     try:
+        # Use default values for optional fields if not provided
+        season_name = request.season_name if request.season_name else "unknown"
+        qc_flag = request.qc_flag if request.qc_flag is not None else 1
+        
         # Create input dataframe
         input_data = pd.DataFrame({
             'planting_year': [request.planting_year],
             'planting_month': [request.planting_month],
             'area': [request.area],
             'area_log': [np.log1p(request.area)],
-            'qc_flag': [request.qc_flag],
+            'qc_flag': [qc_flag],
             'modern_era': [1 if request.planting_year >= 2010 else 0],
             'product': [request.product.lower()],
             'crop_production_system': [request.crop_production_system.lower()],
             'country': [request.country.lower()],
-            'season_name': [request.season_name.lower()]
+            'season_name': [season_name.lower()]
         })
         
         # Add planting season
@@ -122,9 +151,12 @@ async def predict(request: PredictionRequest):
                         input_data[f'{col}_encoded'] = [0]  # Default value
                 except:
                     input_data[f'{col}_encoded'] = [0]
+            else:
+                # If encoder doesn't exist, use default value
+                input_data[f'{col}_encoded'] = [0]
         
-        # Select features
-        X_input = input_data[feature_columns].fillna(0)
+        # Select features (fill missing with 0)
+        X_input = input_data.reindex(columns=feature_columns, fill_value=0)
         
         # Scale features
         X_scaled = scaler.transform(X_input)
@@ -142,13 +174,15 @@ async def predict(request: PredictionRequest):
                 'area': request.area,
                 'country': request.country,
                 'planting_year': request.planting_year,
-                'planting_month': request.planting_month
+                'planting_month': request.planting_month,
+                'production_system': request.crop_production_system
             }
         }
         
     except Exception as e:
+        print(f"❌ Prediction error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=HOST, port=PORT)
