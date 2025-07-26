@@ -268,7 +268,7 @@ class _PredictionPageState extends State<PredictionPage> {
   bool _hasError = false;
 
   // Replace with your actual API endpoint
-  final String API_BASE_URL = 'http://localhost:8000'; // Change this to your deployed URL
+  final String API_BASE_URL = 'https://crop-yield-prediction-a8ho.onrender.com'; // Change this to your deployed URL
   final String PREDICT_ENDPOINT = '/predict';
 
   @override
