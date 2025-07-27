@@ -54,7 +54,7 @@ Developing an AI-powered linear regression model to predict optimal crop yields 
   "success": true,
   "predicted_yield": 2.456,     // Predicted yield in mt/ha
   "unit": "mt/ha",
-  "confidence": "Medium",       // Low/Medium/High confidence
+  "confidence": "Medium",       
   "input_summary": {
     "crop": "maize",
     "area": 5.0,
@@ -66,11 +66,9 @@ Developing an AI-powered linear regression model to predict optimal crop yields 
 ```
 
 ## 🎥 Demo Video
-**YouTube Demo**: [5-Minute System Demonstration](https://youtube.com/your-demo-video)
+**YouTube Demo**: [5-Minute System Demonstration](https://www.youtube.com/watch?v=eg8jKMbDLjI)
 - Model training process walkthrough
-- API testing with real agricultural scenarios
 - Mobile app functionality demonstration
-- Real-world use cases for farmers and investors
 
 ## 📈 Key Features & Impact
 - ✅ **Multi-crop prediction**: 15+ crop types (maize, wheat, rice, cassava, sorghum, etc.)
@@ -142,7 +140,5 @@ Decision Tree:              Test R² = 0.6+ (60%+ accuracy)
    - Confidence scoring and prediction interpretation
 
 ---
-**🌍 Developed for Food Security & Sustainable Agriculture**  
-*Empowering African farmers with AI-driven crop yield predictions*  
 
 
